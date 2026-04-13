@@ -146,33 +146,35 @@ def health():
     return jsonify({'status': 'ok', 'service': 'GameStore API'}), 200
 
 
-@app.route('/games', methods=['GET'])
+@app.route("/games", methods=["GET"])
 def list_games():
-    """Liste tous les jeux. Filtre optionnel : ?genre=RPG&sort=price"""
     db = get_db()
-    genre  = request.args.get('genre')
-    sort   = request.args.get('sort', 'id')
-    order  = request.args.get('order', 'asc').upper()
+    
+    genre = request.args.get("genre")
+    sort = request.args.get("sort", "id")
+    order = request.args.get("order", "asc").upper()
+    try:
+        limit = int(request.args.get("limit", 5))
+    except (TypeError, ValueError):
+        limit = 5
 
-    allowed_sort  = {'id', 'title', 'price', 'rating', 'genre', 'year'}
-    allowed_order = {'ASC', 'DESC'}
+    limit = max(1, min(limit, 5))
+
+    allowed_sort = {"id", "title", "price", "rating", "genre", "year"}
+    allowed_order = {"ASC", "DESC"}
     if sort not in allowed_sort:
-        sort = 'id'
+        sort = "id"
     if order not in allowed_order:
-        order = 'ASC'
+        order = "ASC"
 
     if genre:
         rows = db.execute(
-            f'SELECT * FROM games WHERE genre = ? ORDER BY {sort} {order}',
-            (genre,)
+            f"SELECT * FROM games WHERE genre = ? ORDER BY {sort} {order} LIMIT ?", (genre, limit)
         ).fetchall()
     else:
-        rows = db.execute(
-            f'SELECT * FROM games ORDER BY {sort} {order}'
-        ).fetchall()
+        rows = db.execute(f"SELECT * FROM games ORDER BY {sort} {order} LIMIT ?", (limit,)).fetchall()
 
     return jsonify([row_to_dict(r) for r in rows]), 200
-
 
 @app.route('/games', methods=['POST'])
 def create_game():
@@ -324,7 +326,6 @@ def search_games():
 
     return jsonify({'count': len(results), 'results': results}), 200
 
-
 @app.route('/genres')
 def list_genres():
     """Liste les genres disponibles (pour le filtre du front-end)."""
@@ -332,6 +333,33 @@ def list_genres():
     rows = db.execute('SELECT DISTINCT genre FROM games ORDER BY genre').fetchall()
     return jsonify([r['genre'] for r in rows]), 200
 
+
+@app.route('/games/featured', methods=['GET'])
+def featured_games():
+    db = get_db()
+
+    try:
+        limit = int(request.args.get("limit", 5))
+    except (TypeError, ValueError):
+        limit = 5
+
+    rows = db.execute(
+        '''
+        SELECT *
+        FROM games
+        WHERE price > 0
+        ORDER BY rating DESC
+        LIMIT ? 
+        ''',(limit,)
+    ).fetchall()
+
+    featured = [row_to_dict(row) for row in rows]
+
+    response = {
+        "count": len(featured),
+        "featured": featured
+    }
+    return jsonify(response), 200
 
 # ── Interface HTML ────────────────────────────────────────────────────────────
 
