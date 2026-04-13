@@ -890,7 +890,7 @@ HTML_TEMPLATE = '''<!DOCTYPE html>
       });
       const data = await res.json();
       if (!res.ok) {
-        showToast(data.error || 'Erreur lors de l\'ajout', true);
+        showToast(data.error || 'Erreur lors de l ajout', true );
         return;
       }
       allGames.unshift(data);

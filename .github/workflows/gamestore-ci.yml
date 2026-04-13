@@ -105,19 +105,20 @@ jobs:
 
       - name: Installer Playwright
         run: |
-          pip install flask playwright pytest-playwright
+          pip install flask playwright pytest-playwright pytest-html
           playwright install chromium --with-deps
 
       - name: Démarrer l'API GameStore
         run: |
           pip install flask
           python app_gamestore.py &
-          sleep 5
-          curl http://localhost:5000/health
+          sleep 2
+          curl --retry 5 --retry-delay 1 http://localhost:5000/health
 
       - name: Lancer les tests UI
         run: |
-          pytest tests/test_playwright_j5.py -v \
+          mkdir -p reports screenshots
+          PYTHONPATH=. pytest tests/test_playwright_j5.py -v \
             --html=reports/playwright_report.html \
             --self-contained-html
 
@@ -128,4 +129,4 @@ jobs:
           name: playwright-reports
           path: |
             reports/playwright_report.html
-            screenshots /
+            screenshots/
